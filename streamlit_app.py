@@ -24,7 +24,7 @@ def generate_facts(topic, num_samples=3):
     for _ in range(num_samples):
         prompt = f"Generate three fascinating facts about {topic}. Keep each fact to a sentence. Do not say anything other than the facts."
         response = llm(prompt=prompt, max_tokens=100)
-        responses.append(response.text.strip())
+        responses.append(response.strip())
     return responses
 
 st.title('Daily Fact Subscription')
