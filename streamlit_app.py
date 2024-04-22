@@ -2,22 +2,13 @@ import streamlit as st
 import sqlite3
 from langchain.llms import OpenAI  # Correct import based on our assumption
 import datetime
+from streamlit_gsheets import GSheetsConnection
 
 # Initialize the language model using a secure API key from Streamlit secrets
 llm = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# Database setup
-conn = sqlite3.connect('subscribers.db', check_same_thread=False)
-c = conn.cursor()
-c.execute('''
-CREATE TABLE IF NOT EXISTS subscribers
-(email TEXT UNIQUE, topic TEXT)
-''')
-c.execute('''
-CREATE TABLE IF NOT EXISTS content
-(email TEXT, fact TEXT, date_sent DATE)
-''')
-conn.commit()
+# Create a connection object.
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 def generate_facts(topic, num_samples=3):
     responses = []
@@ -41,6 +32,21 @@ if st.button('Generate Facts'):
 
         if st.button('Confirm Subscription'):
             try:
+                # Read in the whole sheet as a dataframe
+                sheet_df = conn.read(worksheet="Subscribers")
+                
+                # Convert all column names to a list to be able to use without referencing # their specific name
+                column_names = sheet_df.columns.tolist()
+                
+                # Edit the value in column 2 based based on the value in column 1
+                # Note - 0 indexing
+                sheet_df.loc[sheet_df[column_names[0]] == item, column_names[1]] =name
+                
+                # Write the entire sheet back to Google Sheets
+                sheet_df = conn.update(
+                	worksheet="33",
+                     data=sheet_df,
+                	)
                 c.execute("INSERT INTO subscribers (email, topic) VALUES (?, ?)", (email, topic))
                 conn.commit()
                 for fact in samples:
